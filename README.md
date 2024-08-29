@@ -30,7 +30,7 @@ Our contributions in this paper are summarized as follows:
 
 Here is a key image that illustrates the ProFONet architecture:
 
-![ProFONet Architecture](ProFONet (1)-1.png)
+![ProFONet Architecture](ProFONet.png)
 *📷 Fig 1: ProFONet architecture. At the start of each episode of prototypical training, images from the Support set \(S\) and Query set \(Q\) go through the shared encoder \(E_\theta\) and produce embedding points. Distance function learns the prototypes \(P_k\) and forms the clusters from initial embedding. Proposed Feature Optimization (O) generates denser and well-separated clusters of prototypes in \(P_{optimized}\) by inter-class repulsion and intra-class condensation using proposed VIC Injected ProtoLoss \(\mathcal{L_\theta}\). On the top row, the effect of covariance regularization is shown where embedded points are aligned diagonally after feature optimization (Three classes are selected randomly from a novel set).*
 
 ## 🚀 Code and Data
