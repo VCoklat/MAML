@@ -1,4 +1,3 @@
-
 # ProFONet: Prototypical Feature Space Optimized Network for Few-Shot Classification
 
 ## Introduction
@@ -35,7 +34,109 @@ Here is a key image that illustrates the ProFONet architecture:
 
 ## 🚀 Code and Data
 
-The code, training scripts, and datasets used in this paper will be made available soon in this repository. Stay tuned! 🔜
+### Getting Started
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/aj-das-research/ProFONet.git
+   cd ProFONet
+   ```
+
+2. **Install Dependencies**:
+   Ensure you have Python 3.7 or later installed. Install the required Python packages using:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Data Preparation**:
+   Organize your data inside the `data/` directory. For instance, place the **GIF** dataset in the `data/GIF/` folder. You can find JSON files for train, validation, and test splits in `data/GIF/`.
+
+4. **Training**:
+   To train the model using the VIC-Injected Protoloss, run:
+   ```bash
+   python train.py
+   ```
+
+   Here’s a simple example of how the loss function is used in the training pipeline:
+   ```python
+   from vic_loss import vic_weighted_protoloss
+   
+   # Assuming these are the components of your model and data
+   model = YourPrototypicalNetworkModel()
+   optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+   
+   # Training loop
+   for episode in range(num_episodes):
+       support_features, support_labels, query_features, query_labels = load_episode_data()
+   
+       # Get classification scores
+       classification_scores, prototypes = model(support_features, query_features)
+   
+       # Calculate loss using VIC Protoloss
+       loss = vic_weighted_protoloss(classification_scores, query_labels, support_features, prototypes)
+   
+       # Backpropagation
+       optimizer.zero_grad()
+       loss.backward()
+       optimizer.step()
+   
+       print(f"Episode {episode + 1}/{num_episodes}, Loss: {loss.item()}")
+   ```
+
+### VIC-Injected Prototypical Loss
+
+The VIC-Injected Prototypical Loss function integrates variance, invariance, and covariance regularization into the loss calculation to optimize the feature space for more discriminative prototype clusters. Here's how the loss is constructed in code:
+
+```python
+import torch
+import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
+
+def vic_weighted_protoloss(classification_scores, query_labels, support_features, prototypes):
+    weight_variance = 25
+    weight_invariance = 25
+    weight_covariance = 1
+
+    # Variance
+    std_z_a = torch.sqrt(support_features.var(dim=0) + 1e-4)
+    std_z_b = torch.sqrt(prototypes.var(dim=0) + 1e-4)
+    std_loss = torch.mean(F.relu(1 - std_z_a)) + torch.mean(F.relu(1 - std_z_b))
+
+    # Invariance
+    classification_loss = CrossEntropyLoss()(classification_scores, query_labels)
+
+    # Covariance
+    N_a, D = support_features.shape
+    N_b, _ = prototypes.shape
+    z_joint = torch.cat([support_features, prototypes], dim=0)
+    z_joint = z_joint - z_joint.mean(dim=0)
+    cov_z_joint = (z_joint.T @ z_joint) / (N_a + N_b - 1)
+    off_diag_cov_z_joint = cov_z_joint - torch.diag(torch.diagonal(cov_z_joint))
+    cov_loss = off_diag_cov_z_joint.pow(2).sum() / D
+
+    # Combined VIC loss
+    weighted_loss = (weight_invariance * std_loss) + (weight_covariance * cov_loss) + classification_loss
+
+    return weighted_loss
+```
+
+### Inference
+
+To perform inference with extracted embeddings:
+```python
+import torch
+
+def infer_with_embeddings(model, embeddings):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(embeddings)
+        _, predicted = torch.max(outputs, 1)
+    return predicted
+
+# Example usage:
+# embeddings = load_embeddings()
+# predictions = infer_with_embeddings(model, embeddings)
+```
 
 ## 📝 License
 
